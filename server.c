@@ -14,8 +14,6 @@
 int main(int argc, char **argv)
 {
     int ls, fd, max_fd, res, port = PORT;
-    char buffer[BUFFER_SIZE];
-    int last_message_fd;
     fd_set readfds, writefds;
     socklen_t slen;
     struct sockaddr_in server_addr, client_addr;
@@ -41,7 +39,6 @@ int main(int argc, char **argv)
         perror("Bind error");
     }
 
-    fcntl(ls, O_NONBLOCK);
     listen(ls, 5);
     printf("Server has been started on port %d...\n", port);
 
@@ -57,7 +54,6 @@ int main(int argc, char **argv)
             if (tmp->fd > max_fd) {
                 max_fd = tmp->fd;
             }
-            FD_SET(tmp->fd, &writefds);
             tmp = tmp->next_session;
         }
         
@@ -87,20 +83,14 @@ int main(int argc, char **argv)
 
         while(tmp) {
             if (FD_ISSET(tmp->fd, &readfds)) {
-                memset(buffer, 0, BUFFER_SIZE);
+                memset(tmp->buffer, 0, BUFFER_SIZE);
 
-                if ((read(tmp->fd, buffer, BUFFER_SIZE)) == 0) {
+                if ((read(tmp->fd, tmp->buffer, BUFFER_SIZE)) == 0) {
                     close(tmp->fd);
                     delete_fd(tmp->fd, fd_list);
                     printf("Connection closed\n");
                 } else {
-                    printf(" > %s", buffer);
-                    last_message_fd = tmp->fd;
-                }
-            }
-            if (FD_ISSET(tmp->fd, &writefds)) {
-                if (last_message_fd != tmp->fd) {
-                    write(tmp->fd, buffer, BUFFER_SIZE);
+                    printf(" > %s", tmp->buffer);
                 }
             }
             tmp = tmp->next_session;
