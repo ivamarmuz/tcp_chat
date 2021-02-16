@@ -103,7 +103,6 @@ int main(void)
                 tmp = tmp->next_fd;
             }
         }
-
     }
     
     return 0;
