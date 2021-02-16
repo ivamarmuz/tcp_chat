@@ -20,16 +20,21 @@ int main(void)
     char buffer[BUFFER_SIZE];
     struct session *fd_list = NULL, *tmp = fd_list, *tmp2 = NULL;
     fd_set rds, wrs;
+    int flags;
 
     fd_list = malloc(sizeof(*fd_list));
     fd_list->first = NULL;
     fd_list->last = NULL;
 
     ls = socket(AF_INET, SOCK_STREAM, 0);
-    max_fd = ls;
 
     if (ls == -1)
         perror("Socket error");
+
+    max_fd = ls;
+
+    flags = fcntl(ls, F_GETFL);
+    fcntl(ls, F_SETFL, flags | O_NONBLOCK);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -45,7 +50,7 @@ int main(void)
         FD_ZERO(&rds);
         FD_ZERO(&wrs);
         FD_SET(ls, &rds);
-
+        
         tmp = fd_list->first;
 
         while (tmp) {
@@ -70,11 +75,6 @@ int main(void)
                 if (max_fd < fd)
                     max_fd = fd;
                 printf("New connection\n");
-                tmp = fd_list->first;
-                while(tmp) {
-                    printf("%d;\n", tmp->fd);
-                    tmp = tmp->next_fd;
-                }
             }
 
             tmp = fd_list->first;
@@ -93,13 +93,14 @@ int main(void)
                             }
                         }
                         close(tmp->fd);
-                        tmp->fd = -1;
                         delete_fd(tmp->fd, fd_list);
+                        tmp->fd = -1;
                         printf("Connection closed\n");
                     } else {
                         printf(" > %s", buffer);
                     }
                 }
+                tmp = tmp->next_fd;
             }
         }
 

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "session.h"
 
@@ -17,11 +18,13 @@ void add_fd(int fd, struct session *s)
         new_fd->prev_fd = NULL;
         s->first = new_fd;
         s->last = s->first;
+
         return;
     } else {
         new_fd->prev_fd = s->last;
         s->last->next_fd = new_fd;
         s->last = new_fd;
+
         return;
     }
 }
@@ -33,7 +36,8 @@ void delete_fd(int fd, struct session *s)
     if (s->first->fd == fd) {
         tmp = s->first;
         s->first = s->first->next_fd;
-        s->first->prev_fd = NULL;
+        if (s->first)
+            s->first->prev_fd = NULL;
         free(tmp);
         return;
     }
@@ -41,11 +45,12 @@ void delete_fd(int fd, struct session *s)
     if (s->last->fd == fd) {
         tmp = s->last;
         s->last = s->last->prev_fd;
-        s->last->next_fd = NULL;
+        if (s->last)
+            s->last->next_fd = NULL;
         free(tmp);
         return;
     }
-
+    
     tmp = s->first;
 
     while (tmp->fd != fd) {
@@ -56,6 +61,8 @@ void delete_fd(int fd, struct session *s)
     tmp->prev_fd->next_fd = tmp->next_fd;
     tmp->next_fd->prev_fd = tmp->prev_fd;
     free(tmp2);
+
+    return;
 }
 
 #endif
