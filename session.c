@@ -1,39 +1,61 @@
-#include "session.h"
+#ifndef SESSION_H
+#define SESSION_H
+
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include <unistd.h>
 
-struct session *add_fd(int fd, struct session *first)
+#include "session.h"
+
+void add_fd(int fd, struct session *s)
 {
-    struct session *tmp = malloc(sizeof(*tmp));
+    struct session *new_fd = malloc(sizeof(*new_fd));
 
-    tmp->fd = fd;
-    memset(tmp->name, 0, NAME_SIZE);
-    memset(tmp->buffer, 0, BUFFER_SIZE);
-    tmp->prev_session = NULL;
-    tmp->next_session = first;
-    if (first) {
-        first->prev_session = tmp;
-    }
-    return tmp;
-}
+    new_fd->fd = fd;
+    new_fd->next_fd = NULL;
 
-void delete_fd(int fd, struct session *first)
-{
-    struct session *tmp = first;
-    if (fd == tmp->fd) {
-        if (tmp->prev_session) {
-            tmp->prev_session->next_session = tmp->next_session;
-        }
-        if (tmp->next_session) {
-            tmp->next_session->prev_session = tmp->prev_session;
-        }
-        if (!tmp->prev_session && !tmp->next_session) {
-            first = NULL;
-        }
-        tmp->fd = -1;
-        free(tmp);
+    if (!s->first) {
+        new_fd->prev_fd = NULL;
+        s->first = new_fd;
+        s->last = s->first;
+        return;
     } else {
-        delete_fd(fd, tmp->next_session);
+        new_fd->prev_fd = s->last;
+        s->last->next_fd = new_fd;
+        s->last = new_fd;
+        return;
     }
 }
+
+void delete_fd(int fd, struct session *s)
+{
+    struct session *tmp = NULL, *tmp2 = NULL;
+
+    if (s->first->fd == fd) {
+        tmp = s->first;
+        s->first = s->first->next_fd;
+        s->first->prev_fd = NULL;
+        free(tmp);
+        return;
+    }
+
+    if (s->last->fd == fd) {
+        tmp = s->last;
+        s->last = s->last->prev_fd;
+        s->last->next_fd = NULL;
+        free(tmp);
+        return;
+    }
+
+    tmp = s->first;
+
+    while (tmp->fd != fd) {
+        tmp = tmp->next_fd;
+    }
+
+    tmp2 = tmp;
+    tmp->prev_fd->next_fd = tmp->next_fd;
+    tmp->next_fd->prev_fd = tmp->prev_fd;
+    free(tmp2);
+}
+
+#endif

@@ -10,92 +10,100 @@
 #include "session.h"
 
 #define PORT 7890
+#define BUFFER_SIZE 1023
 
-int main(int argc, char **argv)
+int main(void)
 {
-    int ls, fd, max_fd, res, port = PORT;
-    fd_set readfds, writefds;
-    socklen_t slen;
+    int ls, fd, max_fd;
     struct sockaddr_in server_addr, client_addr;
-    struct session *fd_list = NULL, *tmp = NULL;
+    socklen_t slen = sizeof(struct sockaddr_in);
+    char buffer[BUFFER_SIZE];
+    struct session *fd_list = NULL, *tmp = fd_list, *tmp2 = NULL;
+    fd_set rds, wrs;
 
-    if (argc > 1) {
-        port = atoi(argv[1]);
-    }
+    fd_list = malloc(sizeof(*fd_list));
+    fd_list->first = NULL;
+    fd_list->last = NULL;
 
     ls = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (ls == -1) {
-        perror("Socket error");
-    }
-
     max_fd = ls;
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    if (ls == -1)
+        perror("Socket error");
 
-    if ((bind(ls, (struct sockaddr *)&server_addr, sizeof(server_addr))) == -1) {
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(PORT);
+
+    if ((bind(ls, (struct sockaddr *)&server_addr, sizeof(server_addr))) == -1)
         perror("Bind error");
-    }
 
     listen(ls, 5);
-    printf("Server has been started on port %d...\n", port);
+    printf("Listening on port 7890...\n");
 
     for (;;) {
-        FD_ZERO(&readfds);
-        FD_ZERO(&writefds);
-        FD_SET(ls, &readfds);
+        FD_ZERO(&rds);
+        FD_ZERO(&wrs);
+        FD_SET(ls, &rds);
 
-        tmp = fd_list;
+        tmp = fd_list->first;
 
-        while(tmp) {
-            FD_SET(tmp->fd, &readfds);
-            if (tmp->fd > max_fd) {
-                max_fd = tmp->fd;
-            }
-            tmp = tmp->next_session;
-        }
-        
-        res = select(max_fd+1, &readfds, NULL, NULL, NULL);
-
-        if (res < 1) {
-            if (errno != EINTR) {
-                perror("Select error");
-            } else {
-                perror("Signal error");
-            }
-            continue;
+        while (tmp) {
+            FD_SET(tmp->fd, &rds);
+            tmp = tmp->next_fd;
         }
 
-        if (res == 0) {
-            printf("Timeout");
-            continue;
+        int res = select(max_fd+1, &rds, NULL, NULL, NULL);
+
+        if (res < 0) {
+            if (errno == EINTR)
+                continue;
+            else
+                break;
         }
 
-        if (FD_ISSET(ls, &readfds)) {
-            fd = accept(ls, (struct sockaddr *)&client_addr, &slen);
-            fd_list = add_fd(fd, fd_list);
-            printf("New client\n");
-        }
+        if (res > 0) {
 
-        tmp = fd_list;
-
-        while(tmp) {
-            if (FD_ISSET(tmp->fd, &readfds)) {
-                memset(tmp->buffer, 0, BUFFER_SIZE);
-
-                if ((read(tmp->fd, tmp->buffer, BUFFER_SIZE)) == 0) {
-                    close(tmp->fd);
-                    delete_fd(tmp->fd, fd_list);
-                    printf("Connection closed\n");
-                } else {
-                    printf(" > %s", tmp->buffer);
+            if (FD_ISSET(ls, &rds)) {
+                fd = accept(ls, (struct sockaddr* )&client_addr, &slen);
+                add_fd(fd, fd_list);
+                if (max_fd < fd)
+                    max_fd = fd;
+                printf("New connection\n");
+                tmp = fd_list->first;
+                while(tmp) {
+                    printf("%d;\n", tmp->fd);
+                    tmp = tmp->next_fd;
                 }
             }
-            tmp = tmp->next_session;
-        }
-    }
 
+            tmp = fd_list->first;
+
+            while (tmp) {
+                memset(buffer, 0, BUFFER_SIZE);
+
+                if (FD_ISSET(tmp->fd, &rds)) {
+                    if ((read(tmp->fd, buffer, BUFFER_SIZE)) == 0) {
+                        if (tmp->fd == max_fd) {
+                            tmp2 = fd_list->first;
+                            while (tmp2) {
+                                if (max_fd < tmp2->fd)
+                                    max_fd = tmp2->fd;
+                                tmp2 = tmp2->next_fd;
+                            }
+                        }
+                        close(tmp->fd);
+                        tmp->fd = -1;
+                        delete_fd(tmp->fd, fd_list);
+                        printf("Connection closed\n");
+                    } else {
+                        printf(" > %s", buffer);
+                    }
+                }
+            }
+        }
+
+    }
+    
     return 0;
 }
