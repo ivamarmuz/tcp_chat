@@ -14,13 +14,12 @@
 
 int main(void)
 {
-    int ls, fd, max_fd;
+    int ls, fd, max_fd, flags;
     struct sockaddr_in server_addr, client_addr;
     socklen_t slen = sizeof(struct sockaddr_in);
     char buffer[BUFFER_SIZE];
     struct session *fd_list = NULL, *tmp = fd_list, *tmp2 = NULL;
     fd_set rds, wrs;
-    int flags;
 
     fd_list = malloc(sizeof(*fd_list));
     fd_list->first = NULL;
