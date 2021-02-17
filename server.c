@@ -69,10 +69,14 @@ int main(void)
         if (res > 0) {
 
             if (FD_ISSET(ls, &rds)) {
+                printf("Before accept\n");
                 fd = accept(ls, (struct sockaddr* )&client_addr, &slen);
+                printf("Before add_fd\n");
                 add_fd(fd, fd_list);
+                printf("Before max_fd\n");
                 if (max_fd < fd)
                     max_fd = fd;
+                printf("Before printf\n");
                 printf("New connection\n");
             }
 
@@ -85,8 +89,9 @@ int main(void)
                     if ((read(tmp->fd, buffer, BUFFER_SIZE)) == 0) {
                         if (tmp->fd == max_fd) {
                             tmp2 = fd_list->first;
+                            max_fd = 0;
                             while (tmp2) {
-                                if (max_fd < tmp2->fd)
+                                if (max_fd < tmp2->fd && tmp2->fd != tmp->fd)
                                     max_fd = tmp2->fd;
                                 tmp2 = tmp2->next_fd;
                             }

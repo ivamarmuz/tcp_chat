@@ -31,7 +31,36 @@ void add_fd(int fd, struct session *s)
 
 void delete_fd(int fd, struct session *s)
 {
-    
+    struct session *tmp = NULL;
+
+    if (s->first->fd == fd) {
+        tmp = s->first;
+        s->first = s->first->next_fd;
+        if (s->first)
+            s->first->prev_fd = NULL;
+        free(tmp);
+        return;
+    }
+
+    if (s->last->fd = fd) {
+        tmp = s->last;
+        s->last = s->last->prev_fd;
+        if (s->last)
+            s->last->next_fd = NULL;
+        free(tmp);
+        return;
+    }
+
+    if (s->first) {
+        tmp = s->first;
+
+        while (tmp->fd != fd)
+            tmp = tmp->next_fd;
+
+        tmp->prev_fd->next_fd = tmp->next_fd;
+        tmp->next_fd->prev_fd = tmp->prev_fd;
+        free(tmp);
+    }
 }
 
 #endif
