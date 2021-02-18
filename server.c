@@ -16,8 +16,8 @@
 
 int main(void)
 {
-    int ls, fd, max_fd, res, last_msg;
-    char buffer[BUFFER_SIZE], ip[IP_SIZE];
+    int ls, fd, max_fd, res, opt = 1;
+    char buffer[BUFFER_SIZE], ip[IP_SIZE], message[BUFFER_SIZE];
     struct session_list *fd_list = create_session_list();
     struct session *tmp = fd_list->head, *tmp2  = NULL;
     struct sockaddr_in server, client;
@@ -32,6 +32,8 @@ int main(void)
 
     if (ls == -1)
         perror("Socket error");
+
+    setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     if ((bind(ls, (struct sockaddr *)&server, sizeof(server))) == -1)
         perror("Bind error");
@@ -49,7 +51,8 @@ int main(void)
 
         while(tmp) {
             FD_SET(tmp->fd, &rds);
-
+            if (max_fd < tmp->fd)
+                max_fd = tmp->fd;
             tmp = tmp->next;
         }
 
@@ -63,57 +66,31 @@ int main(void)
         }
 
         if (res > 0) {
+
             if (FD_ISSET(ls, &rds)) {
                 memset(ip, 0, IP_SIZE);
                 fd = accept(ls, (struct sockaddr *)&client, &slen);
                 strcpy(ip, inet_ntoa(client.sin_addr));
                 add_fd(fd, ip, fd_list);
                 FD_SET(fd, &wrs);
-                
-                if (max_fd < fd)
-                    max_fd = fd;
             }
         }
 
         tmp = fd_list->head;
 
         while (tmp) {
+
             if (FD_ISSET(tmp->fd, &rds)) {
                 memset(buffer, 0, BUFFER_SIZE);
-                last_msg = tmp->fd;
                 if ((read(tmp->fd, buffer, BUFFER_SIZE)) != 0) {
                     if (!tmp->name) {
                         set_name(tmp->fd, buffer, fd_list);
-                        memset(buffer, 0, BUFFER_SIZE);
-                        tmp2 = fd_list->head;
-                        strncat(buffer, tmp->name, sizeof(tmp->name));
-                        strncat(buffer, " connected\n", 12);
-                        while (tmp2) {
-                            if (tmp2->fd != last_msg) {
-                                write(tmp2->fd, buffer, sizeof(buffer));
-                            }
-                            tmp2 = tmp2->next;
-                        }
-                        memset(buffer, 0, BUFFER_SIZE);
-                        printf("[%s connected]\n", tmp->name);
-                        strncat(buffer, "Welcome to chat, ", 18);
-                        strncat(buffer, tmp->name, sizeof(tmp->name));
-                        write(tmp->fd, buffer, sizeof(buffer));
-                        memset(buffer, 0, BUFFER_SIZE);
+                        printf("%s > [connected]\n", tmp->name);
                         print_list(fd_list);
                     } else {
-                        printf("%s: %s", tmp->name, buffer);
-                        tmp2 = fd_list->head;
-                        strncat(buffer, ": ", 3);
-                        strncat(buffer, tmp->name, sizeof(tmp->name));
-                        while (tmp2) {
-                            if (tmp2->fd != last_msg) {
-                                write(tmp2->fd, buffer, sizeof(buffer));
-                            }
-                            tmp2 = tmp2->next;
-                        }
-                        memset(buffer, 0, BUFFER_SIZE);
+                        printf("%s > %s", tmp->name, buffer);
                     }
+                    FD_SET(tmp->fd, &wrs);
                 } else {
                     if (tmp->fd == max_fd) {
                         tmp2 = fd_list->head;
@@ -125,18 +102,7 @@ int main(void)
                         }
                     }
                     close(tmp->fd);
-                    memset(buffer, 0, BUFFER_SIZE);
-                    tmp2 = fd_list->head;
-                    strncat(buffer, tmp->name, sizeof(tmp->name));
-                    strncat(buffer, " disconnected\n", 15);
-                    while (tmp2) {
-                        if (tmp2->fd != last_msg) {
-                            write(tmp2->fd, buffer, sizeof(buffer));
-                        }
-                        tmp2 = tmp2->next;
-                    }
-                    memset(buffer, 0, BUFFER_SIZE);
-                    printf("[%s disconnected]\n", tmp->name);
+                    printf("%s > [disconnected]\n", tmp->name);
                     delete_fd(tmp->fd, fd_list);
                     print_list(fd_list);
                     tmp = tmp->next;
@@ -145,8 +111,16 @@ int main(void)
             }
 
             if (FD_ISSET(tmp->fd, &wrs)) {
-                if (!tmp->name)
+                if (!tmp->name) {
                     write(tmp->fd, "Enter your name: ", 18);
+                } else {
+                    tmp2 = fd_list->head;
+                    while (tmp2) {
+                        if (tmp2->fd != tmp->fd)
+                            write(tmp2->fd, buffer, sizeof(buffer));
+                        tmp2 = tmp2->next;
+                    }
+                }
             }
 
             tmp = tmp->next;
