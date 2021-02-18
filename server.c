@@ -14,7 +14,7 @@
 
 int main(void)
 {
-    int ls, fd, max_fd, res, tmp_del;
+    int ls, fd, max_fd, res;
     char buffer[BUFFER_SIZE];
     struct session_list *fd_list = create_session_list();
     struct session *tmp = fd_list->head, *tmp2  = NULL;
@@ -63,9 +63,12 @@ int main(void)
             if (FD_ISSET(ls, &rds)) {
                 fd = accept(ls, (struct sockaddr *)&client, &slen);
                 add_fd(fd, fd_list);
+                
                 if (max_fd < fd)
                     max_fd = fd;
-                printf("New client\n");
+
+                printf("[New connection]\n");
+                print_list(fd_list);
             }
         }
 
@@ -86,16 +89,15 @@ int main(void)
                                 max_fd = tmp2->fd;
                             tmp2 = tmp2->next;
                         }
-                        tmp_del = tmp->fd;
-                        close(tmp->fd);
-                        delete_fd(tmp_del, fd_list);
-                        printf("Connection closed\n");
                     }
+                    close(tmp->fd);
+                    delete_fd(tmp->fd, fd_list);
+                    printf("[Disconnected]\n");
+                    print_list(fd_list);
                 }
             }
 
             tmp = tmp->next;
-            print_list(fd_list);
         }
     }
 

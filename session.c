@@ -93,20 +93,19 @@ void print_list(struct session_list *list)
         struct session *tmp = list->head;
 
         if (!tmp) {
-            printf("[List is empty]\n");
+            printf("=================\n");
+            printf("[No clients]\n");
             return;
         }
-
-        printf("Head: %d\n", list->head->fd);
-        printf("Tail: %d\n", list->tail->fd);
-        printf("Size: %d\n", list->size);
-        printf("Descriptors: ");
+        printf("=================\n");
+        printf("Clients: %d\n", list->size);
 
         while (tmp) {
             printf("%d; ", tmp->fd);
             tmp = tmp->next;
         }
-        printf("\n");
+
+        printf("\n=================\n");
     }
 
     return;
