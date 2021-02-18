@@ -2,84 +2,114 @@
 #define SESSION_H
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 
 #include "session.h"
 
-void add_fd(int fd, struct session *s)
+struct session_list *create_session_list()
 {
-    printf("Start add\n");
-    struct session *new_fd = malloc(sizeof(*new_fd));
-    printf("BEFORE FD\n");
-    new_fd->fd = fd;
-    printf("BEFORE NEXT_FD\n");
-    new_fd->next_fd = NULL;
-    printf("BEFORE IF\n");
-    if (!s->first) {
-        printf("In first\n");
-        new_fd->prev_fd = NULL;
-        s->first = new_fd;
-        s->last = s->first;
+    struct session_list *tmp = (struct session_list *) malloc(sizeof(struct session_list));
 
-        return;
-    } else {
-        printf("In else\n");
-        new_fd->prev_fd = s->last;
-        s->last->next_fd = new_fd;
-        s->last = new_fd;
+    tmp->size = 0;
+    tmp->head = tmp->tail = NULL;
 
-        return;
-    }
+    return tmp;
 }
 
-void delete_fd(int fd, struct session *s)
+void delete_list (struct session_list **list)
 {
-    struct session *tmp = NULL;
+    if (*list) {
+        struct session *tmp = (*list)->head;
+        struct session *next = NULL;
 
-    if (s->first->fd == fd) {
-        tmp = s->first;
-        s->first = s->first->next_fd;
-        if (s->first)
-            s->first->prev_fd = NULL;
-        free(tmp);
-        return;
+        while (tmp) {
+            next = tmp->next;
+            free(tmp);
+            tmp = next;
+        }
+
+        free(*list);
+        (*list) = NULL;
     }
-
-    if (s->last->fd == fd) {
-        tmp = s->last;
-        s->last = s->last->prev_fd;
-        if (s->last)
-            s->last->next_fd = NULL;
-        free(tmp);
-        return;
-    }
-    
-    tmp = s->first;
-
-    while (tmp->fd != fd)
-        tmp = tmp->next_fd;
-    tmp->prev_fd->next_fd = tmp->next_fd;
-    tmp->next_fd->prev_fd = tmp->prev_fd;
-    free(tmp);
 
     return;
 }
 
-void printList(struct session *s)
+void add_fd(int fd, struct session_list *list)
 {
-    struct session *tmp = s->first;
+    if (list) {
+        struct session *tmp = (struct session *) malloc(sizeof(struct session));
 
-    if (s->first)
-        printf("First: %d\n", s->first->fd);
+        tmp->fd = fd;
+        tmp->next = NULL;
+        tmp->prev = list->tail;
 
-    if (s->last)
-        printf("Last: %d\n", s->last->fd);
+        if (list->tail)
+            list->tail->next = tmp;
+        
+        if (list->head == NULL)
+            list->head = tmp;
 
-    while (tmp) {
-        printf("%d;\n", tmp->fd);
-        tmp = tmp->next_fd;
+        list->tail = tmp;
+        list->size++;
     }
+
+    return;  
+}
+
+void delete_fd(int fd, struct session_list *list)
+{
+    if (list) {
+        struct session *tmp = list->head;
+
+        while (tmp && tmp->fd != fd) {
+            tmp = tmp->next;
+        }
+        if (tmp == NULL)
+            return;
+
+        if (tmp->prev)
+            tmp->prev->next = tmp->next;
+
+        if (tmp->next)
+            tmp->next->prev = tmp->prev;
+
+        if (!tmp->prev)
+            list->head = tmp->next;
+
+        if (!tmp->next)
+            list->tail = tmp->prev;
+
+        free(tmp);
+        list->size--;
+    }
+
+    return;
+}
+
+void print_list(struct session_list *list)
+{
+    if (list) {
+        struct session *tmp = list->head;
+
+        if (!tmp) {
+            printf("[List is empty]\n");
+            return;
+        }
+
+        printf("Head: %d\n", list->head->fd);
+        printf("Tail: %d\n", list->tail->fd);
+        printf("Size: %d\n", list->size);
+        printf("Descriptors: ");
+
+        while (tmp) {
+            printf("%d; ", tmp->fd);
+            tmp = tmp->next;
+        }
+        printf("\n");
+    }
+
+    return;
 }
 
 #endif
