@@ -84,13 +84,13 @@ int main(void)
                 memset(buffer, 0, BUFFER_SIZE);
                 if ((read(tmp->fd, buffer, BUFFER_SIZE)) != 0) {
                     if (!tmp->name) {
-                        set_name(tmp->fd, buffer, fd_list);
+                        set_name(tmp->fd, buffer, strlen(buffer), fd_list);
                         printf("%s > [connected]\n", tmp->name);
                         print_list(fd_list);
                     } else {
                         printf("%s > %s", tmp->name, buffer);
+                        FD_SET(tmp->fd, &wrs);
                     }
-                    FD_SET(tmp->fd, &wrs);
                 } else {
                     if (tmp->fd == max_fd) {
                         tmp2 = fd_list->head;
@@ -115,9 +115,13 @@ int main(void)
                     write(tmp->fd, "Enter your name: ", 18);
                 } else {
                     tmp2 = fd_list->head;
+                    memset(message, 0, BUFFER_SIZE);
+                    strncat(message, tmp->name, sizeof(tmp->name));
+                    strncat(message, ": ", 3);
+                    strncat(message, buffer, strlen(buffer));
                     while (tmp2) {
                         if (tmp2->fd != tmp->fd)
-                            write(tmp2->fd, buffer, sizeof(buffer));
+                            write(tmp2->fd, message, strlen(message));
                         tmp2 = tmp2->next;
                     }
                 }

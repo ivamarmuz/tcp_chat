@@ -114,7 +114,7 @@ void print_list(struct session_list *list)
     return;
 }
 
-void set_name(int fd, char *name, struct session_list *list)
+void set_name(int fd, char *name, int size, struct session_list *list)
 {
     if (list) {
         struct session *tmp = list->head;
@@ -122,7 +122,7 @@ void set_name(int fd, char *name, struct session_list *list)
         while (tmp && tmp->fd != fd)
             tmp = tmp->next;
 
-        tmp->name = (char *) malloc(sizeof(name));
+        tmp->name = (char *) malloc(size);
         strcpy(tmp->name, name);
     }
 
