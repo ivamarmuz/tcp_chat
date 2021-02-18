@@ -5,3 +5,4 @@ struct session {
 
 void add_fd(int, struct session *);
 void delete_fd(int, struct session *);
+void printList(struct session *);

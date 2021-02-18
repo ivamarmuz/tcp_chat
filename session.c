@@ -9,18 +9,22 @@
 
 void add_fd(int fd, struct session *s)
 {
+    printf("Start add\n");
     struct session *new_fd = malloc(sizeof(*new_fd));
-
+    printf("BEFORE FD\n");
     new_fd->fd = fd;
+    printf("BEFORE NEXT_FD\n");
     new_fd->next_fd = NULL;
-
+    printf("BEFORE IF\n");
     if (!s->first) {
+        printf("In first\n");
         new_fd->prev_fd = NULL;
         s->first = new_fd;
         s->last = s->first;
 
         return;
     } else {
+        printf("In else\n");
         new_fd->prev_fd = s->last;
         s->last->next_fd = new_fd;
         s->last = new_fd;
@@ -42,7 +46,7 @@ void delete_fd(int fd, struct session *s)
         return;
     }
 
-    if (s->last->fd = fd) {
+    if (s->last->fd == fd) {
         tmp = s->last;
         s->last = s->last->prev_fd;
         if (s->last)
@@ -50,16 +54,31 @@ void delete_fd(int fd, struct session *s)
         free(tmp);
         return;
     }
+    
+    tmp = s->first;
 
-    if (s->first) {
-        tmp = s->first;
+    while (tmp->fd != fd)
+        tmp = tmp->next_fd;
+    tmp->prev_fd->next_fd = tmp->next_fd;
+    tmp->next_fd->prev_fd = tmp->prev_fd;
+    free(tmp);
 
-        while (tmp->fd != fd)
-            tmp = tmp->next_fd;
+    return;
+}
 
-        tmp->prev_fd->next_fd = tmp->next_fd;
-        tmp->next_fd->prev_fd = tmp->prev_fd;
-        free(tmp);
+void printList(struct session *s)
+{
+    struct session *tmp = s->first;
+
+    if (s->first)
+        printf("First: %d\n", s->first->fd);
+
+    if (s->last)
+        printf("Last: %d\n", s->last->fd);
+
+    while (tmp) {
+        printf("%d;\n", tmp->fd);
+        tmp = tmp->next_fd;
     }
 }
 

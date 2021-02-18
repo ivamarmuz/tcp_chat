@@ -69,15 +69,12 @@ int main(void)
         if (res > 0) {
 
             if (FD_ISSET(ls, &rds)) {
-                printf("Before accept\n");
                 fd = accept(ls, (struct sockaddr* )&client_addr, &slen);
-                printf("Before add_fd\n");
                 add_fd(fd, fd_list);
-                printf("Before max_fd\n");
                 if (max_fd < fd)
                     max_fd = fd;
-                printf("Before printf\n");
                 printf("New connection\n");
+                printList(fd_list);
             }
 
             tmp = fd_list->first;
@@ -100,6 +97,7 @@ int main(void)
                         delete_fd(tmp->fd, fd_list);
                         tmp->fd = -1;
                         printf("Connection closed\n");
+                        printList(fd_list);
                     } else {
                         printf(" > %s", buffer);
                     }
@@ -108,6 +106,5 @@ int main(void)
             }
         }
     }
-    
     return 0;
 }
