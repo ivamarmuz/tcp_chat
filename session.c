@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "session.h"
 
@@ -35,12 +36,14 @@ void delete_list (struct session_list **list)
     return;
 }
 
-void add_fd(int fd, struct session_list *list)
+void add_fd(int fd, char *ip, struct session_list *list)
 {
     if (list) {
         struct session *tmp = (struct session *) malloc(sizeof(struct session));
 
         tmp->fd = fd;
+        tmp->name = NULL;
+        strcpy(tmp->ip, ip);
         tmp->next = NULL;
         tmp->prev = list->tail;
 
@@ -101,11 +104,26 @@ void print_list(struct session_list *list)
         printf("Clients: %d\n", list->size);
 
         while (tmp) {
-            printf("%d; ", tmp->fd);
+            printf("%s - %s\n ", tmp->name, tmp->ip);
             tmp = tmp->next;
         }
 
-        printf("\n=================\n");
+        printf("=================\n");
+    }
+
+    return;
+}
+
+void set_name(int fd, char *name, struct session_list *list)
+{
+    if (list) {
+        struct session *tmp = list->head;
+
+        while (tmp && tmp->fd != fd)
+            tmp = tmp->next;
+
+        tmp->name = (char *) malloc(sizeof(name));
+        strcpy(tmp->name, name);
     }
 
     return;
