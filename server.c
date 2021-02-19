@@ -86,6 +86,7 @@ int main(void)
                     if (!tmp->name) {
                         set_name(tmp->fd, buffer, strlen(buffer), fd_list);
                         printf("%s > [connected]\n", tmp->name);
+                        write(tmp->fd, "Welcom to chat!\n", 17);
                         print_list(fd_list);
                     } else {
                         printf("%s > %s", tmp->name, buffer);
@@ -116,7 +117,7 @@ int main(void)
                 } else {
                     tmp2 = fd_list->head;
                     memset(message, 0, BUFFER_SIZE);
-                    strncat(message, tmp->name, sizeof(tmp->name));
+                    strncat(message, tmp->name, strlen(tmp->name)-2);
                     strncat(message, ": ", 3);
                     strncat(message, buffer, strlen(buffer));
                     while (tmp2) {
